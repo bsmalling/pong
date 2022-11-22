@@ -76,7 +76,7 @@ class Ball(pygame.sprite.Sprite):
         self.rect.bottomleft = self.pos
 
         # Randomly select an angle between -45 and 45 degrees
-        self.angle = (random.random() * math.pi / 4.0) - (math.pi / 8.0)
+        self.angle = (random.random() * math.pi / 3.0) - (math.pi / 6.0)
         if side == Const.LEFT:
             self.angle += math.pi
 
@@ -223,7 +223,8 @@ def main():
     while not scoreboard.game_over():
         for event in pygame.event.get():
             if event.type == QUIT:
-                break
+                pygame.quit()
+                sys.exit(0)
         
         displaysurface.fill(Const.BLACK)
         scoreboard.draw(displaysurface)

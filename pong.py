@@ -41,107 +41,100 @@ class Scoreboard():
 
     def draw(self, surface):
         if self.l_score >= 10:
-            self.__draw_digit(surface, self.l_score // 10, (Cfg.WIDTH // 2) - (Cfg.WIDTH // 3) - (Scoreboard.WIDTH * (Scoreboard.DWIDTH + 1)), Scoreboard.YOFFSET)
-        self.__draw_digit(surface, self.l_score % 10,      (Cfg.WIDTH // 2) - (Cfg.WIDTH // 3), Scoreboard.YOFFSET)
+            self._draw_digit(surface, self.l_score // 10, (Cfg.WIDTH // 2) - (Cfg.WIDTH // 3) - (Scoreboard.WIDTH * (Scoreboard.DWIDTH + 1)), Scoreboard.YOFFSET)
+        self._draw_digit(surface, self.l_score % 10,      (Cfg.WIDTH // 2) - (Cfg.WIDTH // 3), Scoreboard.YOFFSET)
 
         if self.r_score >= 10:
-            self.__draw_digit(surface, self.r_score // 10, (Cfg.WIDTH // 2) + (Cfg.WIDTH // 3), Scoreboard.YOFFSET)
-        self.__draw_digit(surface, self.r_score % 10,      (Cfg.WIDTH // 2) + (Cfg.WIDTH // 3) + (Scoreboard.WIDTH * (Scoreboard.DWIDTH + 1)), Scoreboard.YOFFSET)
+            self._draw_digit(surface, self.r_score // 10, (Cfg.WIDTH // 2) + (Cfg.WIDTH // 3), Scoreboard.YOFFSET)
+        self._draw_digit(surface, self.r_score % 10,      (Cfg.WIDTH // 2) + (Cfg.WIDTH // 3) + (Scoreboard.WIDTH * (Scoreboard.DWIDTH + 1)), Scoreboard.YOFFSET)
 
     def game_over(self):
         return self.l_score >= 11 or self.r_score >= 11
 
-    def __get_digit(self, value):
+    def _get_digit(self, value):
         value *= Scoreboard.DWIDTH
         return [s[value:value + 3] for s in Scoreboard.DIGITS]
  
-    def __draw_digit(self, surface, value, x, y):
-        for i, row in enumerate(self.__get_digit(value)):
+    def _draw_digit(self, surface, value, x, y):
+        for i, row in enumerate(self._get_digit(value)):
             for j, col in enumerate(row):
                 if col == "#":
                     pygame.draw.rect(surface, Const.WHITE,
                         (x + j * self.WIDTH, y + i * self.WIDTH, self.WIDTH, self.WIDTH))
 
+
 class Ball(pygame.sprite.Sprite):
-    def __init__(self, side):
+    def __init__(self, side, angle = None):
         super().__init__() 
         self.surf = pygame.Surface((Cfg.SP_WIDTH, Cfg.SP_WIDTH))
         self.surf.fill(Const.WHITE)
-        self.rect = self.surf.get_rect()
 
         xpos = (Cfg.WIDTH  // 2) - (Cfg.SP_WIDTH // 2)
         ypos = (Cfg.HEIGHT // 2) + (Cfg.SP_WIDTH // 2)
-
         self.pos = pygame.math.Vector2((xpos, ypos))
+
+        self.rect = self.surf.get_rect()
         self.rect.bottomleft = self.pos
 
-        # Randomly select an angle between -45 and 45 degrees
-        self.angle = (random.random() * math.pi / 3.0) - (math.pi / 6.0)
-        if side == Const.LEFT:
-            self.angle += math.pi
-
-        self.dx = 0
-        self.dy = 0
-        self.xi = 0
-        self.yi = 0
-        self.D  = 0
+        if angle is None:
+            # Randomly select an angle between -60 and +60 degrees
+            self.angle = (random.random() * math.pi / 3.0) - (math.pi / 6.0)
+            if side == Const.LEFT:
+                self.angle += math.pi
+        else:
+            self.angle = angle
 
         self.prepare_stepping()
 
     def move(self):
-        self.step_line()
-
-        if self.pos.y < Cfg.SP_WIDTH:
-            self.angle = self.angle + (math.pi / 4.0)
-            self.pos.y = Cfg.SP_WIDTH
+        self._step_line()
+        if self.pos.y <= Cfg.SP_WIDTH:
+            self.angle = (2.0 * math.pi) - self.angle
+            self.pos.y = Cfg.SP_WIDTH + 1
             self.prepare_stepping()
-        elif self.pos.y > Cfg.HEIGHT:
-            self.angle = self.angle - math.pi
-            self.pos.y = Cfg.HEIGHT
+        elif self.pos.y >= Cfg.HEIGHT:
+            self.angle = (2.0 * math.pi) - self.angle
+            self.pos.y = Cfg.HEIGHT - 1
             self.prepare_stepping()
 
     def prepare_stepping(self):
         # Bresenham's line algorithm
         # https://wiki2.org/en/Bresenham%27s_line_algorithm
-        xd = self.pos.x + math.cos(self.angle) * Cfg.WIDTH
-        yd = self.pos.y + math.sin(self.angle) * Cfg.HEIGHT
-        destination = pygame.math.Vector2((xd, yd))
+        self.angle = self._normalize_angle(self.angle)
+        xd = self.pos.x + (math.cos(self.angle) * Cfg.WIDTH)
+        yd = self.pos.y + (math.sin(self.angle) * Cfg.HEIGHT)
+        self.dst = pygame.math.Vector2((xd, yd))
 
-        if abs(destination.y - self.pos.y) < abs(destination.x - self.pos.x):
-            if self.pos.x > destination.x:
-                self.dx = self.pos.x - destination.x
-                self.dy = self.pos.y - destination.y
-            else:
-                self.dx = destination.x - self.pos.x
-                self.dy = destination.y - self.pos.y
+        print(180.0 * self.angle / math.pi)
 
-            self.yi = 1
+        self.dx = int(round(abs(self.dst.x - self.pos.x)))
+        self.dy = int(round(abs(self.dst.y - self.pos.y)))
+        if self.dst.x < self.pos.x:
+            self.dx = -self.dx
+        if self.dst.y < self.pos.y:
+            self.dy = -self.dy
+
+        if abs(self.dy) > abs(self.dx):
+            self.yi = -1
             if self.dy < 0:
-                self.yi = -1
+                self.yi = 1
                 self.dy = -self.dy
             self.D = (2 * self.dy) - self.dx
         else:
-            if self.pos.y > destination.y:
-                self.dx = self.pos.x - destination.x
-                self.dy = self.pos.y - destination.y
-            else:
-                self.dx = destination.x - self.pos.x
-                self.dy = destination.y - self.pos.y
-
             self.xi = 1
             if self.dx < 0:
                 self.xi = -1
                 self.dx = -self.dx
             self.D = (2 * self.dx) - self.dy
 
-    def step_line(self):
-        if abs(self.dy) < abs(self.dx):
-            self.step_line_low()
+    def _step_line(self):
+        if abs(self.dy) > abs(self.dx):
+            self._step_line_low()
         else:
-            self.step_line_high()
+            self._step_line_high()
         self.rect.bottomleft = self.pos
 
-    def step_line_low(self):
+    def _step_line_low(self):
         if self.dx > 0:
             self.pos.x += 1
         elif self.dx < 0:
@@ -153,11 +146,11 @@ class Ball(pygame.sprite.Sprite):
         else:
             self.D += 2 * self.dy
 
-    def step_line_high(self):
+    def _step_line_high(self):
         if self.dy > 0:
-            self.pos.y += 1
-        elif self.dy < 0:
             self.pos.y -= 1
+        elif self.dy < 0:
+            self.pos.y += 1
 
         if self.D > 0:
             self.pos.x += self.xi
@@ -165,17 +158,24 @@ class Ball(pygame.sprite.Sprite):
         else:
             self.D += 2 * self.dx
 
+    def _normalize_angle(self, rads):
+        if (rads < 0.0):
+            rads += 2.0 * math.pi
+        elif (rads > 2.0 * math.pi):
+            rads -= 2.0 * math.pi
+        return rads
+
 
 class Paddle(pygame.sprite.Sprite):
     def __init__(self, side):
         super().__init__() 
         self.surf = pygame.Surface((Cfg.SP_WIDTH, Cfg.SP_HEIGHT))
-        self.surf.fill((255,255,255))
+        self.surf.fill(Const.WHITE)
         self.rect = self.surf.get_rect()
+        self.side = side
    
         ypos = (Cfg.HEIGHT // 2) + (Cfg.SP_HEIGHT // 2)
 
-        self.side = side
         if side == Const.LEFT:
             self.pos = pygame.math.Vector2((Cfg.SIDE_BUFFER, ypos))
         else:
@@ -184,6 +184,9 @@ class Paddle(pygame.sprite.Sprite):
 
     def move(self):
         pressed_keys = pygame.key.get_pressed()
+        if pressed_keys[K_ESCAPE]:
+            pygame.quit()
+            sys.exit()
             
         if self.side == Const.LEFT:
             if pressed_keys[K_a]:
@@ -242,23 +245,33 @@ def main():
 
         if pygame.sprite.spritecollideany(ball, paddles):
             if ball.rect.colliderect(l_paddle.rect):
-                ball.angle = math.pi - ball.angle
                 ball.pos.x += 2
+                if ball.angle > 180.0:
+                    ball.angle += math.pi / 2.0
+                else:
+                    ball.angle -= math.pi / 2.0
             else:
-                ball.angle = ball.angle + (math.pi / 2.0)
                 ball.pos.x -= 2
+                if ball.angle > 180.0:
+                    ball.angle += math.pi / 2.0
+                else:
+                    ball.angle -= math.pi / 2.0
+
             ball.prepare_stepping()
             ball.move()
 
         if ball.pos.x >= Cfg.WIDTH - Cfg.SP_WIDTH:
             scoreboard.l_score += 1
-            ball = Ball(Const.LEFT)
+            ball = Ball(Const.RIGHT)
         elif ball.pos.x <= 0:
             scoreboard.r_score += 1
-            ball = Ball(Const.RIGHT)
+            ball = Ball(Const.LEFT)
 
-    pygame.quit()
-    sys.exit(0)
+    while True:
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit(0)
 
 
 if __name__ == "__main__":

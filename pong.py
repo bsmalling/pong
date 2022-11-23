@@ -28,12 +28,14 @@ class Scoreboard():
     DWIDTH = 3              # character columns per digit
     DHEIGHT = 5             # character rows per digit
     YOFFSET = 10            # pixels from top of screen
+
     DIGITS = [
-        "###"+".#."+"###"+"###"+"#.#"+"###"+"#.."+"###"+"###"+"###",
-        "#.#"+".#."+"..#"+"..#"+"#.#"+"#.."+"#.."+"..#"+"#.#"+"#.#",
-        "#.#"+".#."+"###"+"###"+"###"+"###"+"###"+"..#"+"###"+"###",
-        "#.#"+".#."+"#.."+"..#"+"..#"+"..#"+"#.#"+"..#"+"#.#"+"..#",
-        "###"+".#."+"###"+"###"+"..#"+"###"+"###"+"..#"+"###"+"..#"
+        # 0       1       2       3       4       5       6       7       8       9
+        "###" + ".#." + "###" + "###" + "#.#" + "###" + "#.." + "###" + "###" + "###",
+        "#.#" + ".#." + "..#" + "..#" + "#.#" + "#.." + "#.." + "..#" + "#.#" + "#.#",
+        "#.#" + ".#." + "###" + "###" + "###" + "###" + "###" + "..#" + "###" + "###",
+        "#.#" + ".#." + "#.." + "..#" + "..#" + "..#" + "#.#" + "..#" + "#.#" + "..#",
+        "###" + ".#." + "###" + "###" + "..#" + "###" + "###" + "..#" + "###" + "..#"
     ]
 
     def __init__(self, l_score = 0, r_score = 0):
@@ -258,14 +260,14 @@ def main():
         ball.move()
 
         if ball.rect.colliderect(l_paddle.rect):
-            ball.pos.x = l_paddle.rect.x + Cfg.SP_WIDTH + 10
+            ball.pos.x = l_paddle.rect.x + Cfg.SP_WIDTH + 2
             if ball.angle > math.pi:
                 ball.angle += math.pi / 2.0
             else:
                 ball.angle -= math.pi / 2.0
             ball.prepare_stepping()
         elif ball.rect.colliderect(r_paddle.rect):
-            ball.pos.x = r_paddle.rect.x - Cfg.SP_WIDTH - 10
+            ball.pos.x = r_paddle.rect.x - Cfg.SP_WIDTH - 2
             if ball.angle > math.pi:
                 ball.angle -= math.pi / 2.0
             else:

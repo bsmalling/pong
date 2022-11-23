@@ -6,12 +6,12 @@ from pygame.locals import *
 
 
 class Cfg():
-    HEIGHT = 450            # pixels
-    WIDTH = 600             # pixels
-    SP_WIDTH = 15           # pixels
-    SP_HEIGHT = 60          # pixels
-    PD_MOVE = 5             # pixels
-    SIDE_BUFFER = 40        # pixels
+    HEIGHT = 450            # pixels (screen)
+    WIDTH = 600             # pixels (screen)
+    SP_WIDTH = 15           # pixels (for ball and paddles)
+    SP_HEIGHT = 60          # pixels (for paddles)
+    PD_MOVE = 5             # pixels (for paddles)
+    SIDE_BUFFER = 40        # pixels (for paddles)
     FPS = 60                # frames per second
 
 
@@ -23,10 +23,10 @@ class Const():
 
 
 class Scoreboard():
-    WIDTH = 5               # pixels
-    DWIDTH = 3              # character columns
-    DHEIGHT = 5             # character rows
-    YOFFSET = 10            # pixels
+    WIDTH = 5               # pixels per block (square)
+    DWIDTH = 3              # character columns per digit
+    DHEIGHT = 5             # character rows per digit
+    YOFFSET = 10            # pixels from top of screen
     DIGITS = [
         "###"+".#."+"###"+"###"+"#.#"+"###"+"#.."+"###"+"###"+"###",
         "#.#"+".#."+"..#"+"..#"+"#.#"+"#.."+"#.."+"..#"+"#.#"+"#.#",
@@ -41,12 +41,18 @@ class Scoreboard():
 
     def draw(self, surface):
         if self.l_score >= 10:
-            self._draw_digit(surface, self.l_score // 10, (Cfg.WIDTH // 2) - (Cfg.WIDTH // 3) - (Scoreboard.WIDTH * (Scoreboard.DWIDTH + 1)), Scoreboard.YOFFSET)
-        self._draw_digit(surface, self.l_score % 10,      (Cfg.WIDTH // 2) - (Cfg.WIDTH // 3), Scoreboard.YOFFSET)
+            self._draw_digit(surface, self.l_score // 10,
+                (Cfg.WIDTH // 2) - (Cfg.WIDTH // 3) - (Scoreboard.WIDTH * (Scoreboard.DWIDTH + 1)),
+                Scoreboard.YOFFSET)
+        self._draw_digit(surface, self.l_score % 10,
+            (Cfg.WIDTH // 2) - (Cfg.WIDTH // 3), Scoreboard.YOFFSET)
 
         if self.r_score >= 10:
-            self._draw_digit(surface, self.r_score // 10, (Cfg.WIDTH // 2) + (Cfg.WIDTH // 3), Scoreboard.YOFFSET)
-        self._draw_digit(surface, self.r_score % 10,      (Cfg.WIDTH // 2) + (Cfg.WIDTH // 3) + (Scoreboard.WIDTH * (Scoreboard.DWIDTH + 1)), Scoreboard.YOFFSET)
+            self._draw_digit(surface, self.r_score // 10,
+                (Cfg.WIDTH // 2) + (Cfg.WIDTH // 3), Scoreboard.YOFFSET)
+        self._draw_digit(surface, self.r_score % 10,
+            (Cfg.WIDTH // 2) + (Cfg.WIDTH // 3) + (Scoreboard.WIDTH * (Scoreboard.DWIDTH + 1)),
+            Scoreboard.YOFFSET)
 
     def game_over(self):
         return self.l_score >= 11 or self.r_score >= 11
@@ -64,21 +70,25 @@ class Scoreboard():
 
 
 class Ball(pygame.sprite.Sprite):
-    def __init__(self, side, angle = None):
+    def __init__(self, side, speed = 3, angle = None):
         super().__init__() 
         self.surf = pygame.Surface((Cfg.SP_WIDTH, Cfg.SP_WIDTH))
         self.surf.fill(Const.WHITE)
 
-        xpos = (Cfg.WIDTH  // 2) - (Cfg.SP_WIDTH // 2)
         ypos = (Cfg.HEIGHT // 2) + (Cfg.SP_WIDTH // 2)
+        if side == Const.LEFT:
+            xpos = 2 * (Cfg.WIDTH // 3) - (Cfg.SP_WIDTH // 2)
+        else:
+            xpos = 1 * (Cfg.WIDTH // 3) - (Cfg.SP_WIDTH // 2)
         self.pos = pygame.math.Vector2((xpos, ypos))
+        self.speed = speed
 
         self.rect = self.surf.get_rect()
         self.rect.bottomleft = self.pos
 
         if angle is None:
             # Randomly select an angle between -60 and +60 degrees
-            self.angle = (random.random() * math.pi / 3.0) - (math.pi / 6.0)
+            self.angle = (random.random() * math.pi / 1.5) - (math.pi / 6.0)
             if side == Const.LEFT:
                 self.angle += math.pi
         else:
@@ -115,15 +125,15 @@ class Ball(pygame.sprite.Sprite):
             self.dy = -self.dy
 
         if abs(self.dy) > abs(self.dx):
-            self.yi = -1
+            self.yi = -self.speed
             if self.dy < 0:
-                self.yi = 1
+                self.yi = self.speed
                 self.dy = -self.dy
             self.D = (2 * self.dy) - self.dx
         else:
-            self.xi = 1
+            self.xi = self.speed
             if self.dx < 0:
-                self.xi = -1
+                self.xi = -self.speed
                 self.dx = -self.dx
             self.D = (2 * self.dx) - self.dy
 
@@ -136,9 +146,9 @@ class Ball(pygame.sprite.Sprite):
 
     def _step_line_low(self):
         if self.dx > 0:
-            self.pos.x += 1
+            self.pos.x += self.speed
         elif self.dx < 0:
-            self.pos.x -= 1
+            self.pos.x -= self.speed
 
         if self.D > 0:
             self.pos.y += self.yi
@@ -148,9 +158,9 @@ class Ball(pygame.sprite.Sprite):
 
     def _step_line_high(self):
         if self.dy > 0:
-            self.pos.y -= 1
+            self.pos.y -= self.speed
         elif self.dy < 0:
-            self.pos.y += 1
+            self.pos.y += self.speed
 
         if self.D > 0:
             self.pos.x += self.xi
@@ -209,7 +219,6 @@ class Paddle(pygame.sprite.Sprite):
 
 def main():
     pygame.init()
-
     FramePerSec = pygame.time.Clock()
     pygame.display.set_caption("Pong")
     displaysurface = pygame.display.set_mode((Cfg.WIDTH, Cfg.HEIGHT))
@@ -232,8 +241,8 @@ def main():
         displaysurface.fill(Const.BLACK)
         scoreboard.draw(displaysurface)
 
-        for padddle in paddles:
-            displaysurface.blit(padddle.surf, padddle.rect)
+        for paddle in paddles:
+            displaysurface.blit(paddle.surf, paddle.rect)
         displaysurface.blit(ball.surf, ball.rect)
     
         pygame.display.update()
@@ -243,22 +252,20 @@ def main():
             paddle.move()
         ball.move()
 
-        if pygame.sprite.spritecollideany(ball, paddles):
-            if ball.rect.colliderect(l_paddle.rect):
-                ball.pos.x += 2
-                if ball.angle > 180.0:
-                    ball.angle += math.pi / 2.0
-                else:
-                    ball.angle -= math.pi / 2.0
+        if ball.rect.colliderect(l_paddle.rect):
+            ball.pos.x = l_paddle.rect.x + Cfg.SP_WIDTH + 10
+            if ball.angle > math.pi:
+                ball.angle += math.pi / 2.0
             else:
-                ball.pos.x -= 2
-                if ball.angle > 180.0:
-                    ball.angle += math.pi / 2.0
-                else:
-                    ball.angle -= math.pi / 2.0
-
+                ball.angle -= math.pi / 2.0
             ball.prepare_stepping()
-            ball.move()
+        elif ball.rect.colliderect(r_paddle.rect):
+            ball.pos.x = r_paddle.rect.x - Cfg.SP_WIDTH - 10
+            if ball.angle > math.pi:
+                ball.angle -= math.pi / 2.0
+            else:
+                ball.angle += math.pi / 2.0
+            ball.prepare_stepping()
 
         if ball.pos.x >= Cfg.WIDTH - Cfg.SP_WIDTH:
             scoreboard.l_score += 1

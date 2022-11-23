@@ -51,16 +51,16 @@ class Scoreboard():
         self.r_score = r_score
 
     def draw(self, surface):
-        offset = Scoreboard.WIDTH * (Scoreboard.COLS + 1)
-        self._draw_score(surface, self.l_score, (Cfg.WIDTH // 2) - (Cfg.WIDTH // 3), offset)
-        self._draw_score(surface, self.r_score, (Cfg.WIDTH // 2) + (Cfg.WIDTH // 3), offset)
+        self._draw_score(surface, self.l_score, (Cfg.WIDTH // 2) - (Cfg.WIDTH // 3))
+        self._draw_score(surface, self.r_score, (Cfg.WIDTH // 2) + (Cfg.WIDTH // 3))
 
     def game_over(self):
         return self.l_score >= 11 or self.r_score >= 11
 
-    def _draw_score(self, surface, score, x, offset):
+    def _draw_score(self, surface, score, x):
         if score >= 10:
-            self._draw_digit(surface, score // 10, x - offset, Scoreboard.OFFSET)
+            x_offset = Scoreboard.WIDTH * (Scoreboard.COLS + 1)
+            self._draw_digit(surface, score // 10, x - x_offset, Scoreboard.OFFSET)
         self._draw_digit(surface, score % 10, x, Scoreboard.OFFSET)
 
     def _draw_digit(self, surface, value, x, y):

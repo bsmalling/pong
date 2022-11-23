@@ -232,7 +232,7 @@ def main():
     paddles.add(l_paddle)
     paddles.add(r_paddle)
 
-    while not scoreboard.game_over():
+    while True:
         for event in pygame.event.get():
             if event.type == QUIT:
                 pygame.quit()
@@ -243,9 +243,12 @@ def main():
 
         for paddle in paddles:
             displaysurface.blit(paddle.surf, paddle.rect)
-        displaysurface.blit(ball.surf, ball.rect)
+        if not scoreboard.game_over():
+            displaysurface.blit(ball.surf, ball.rect)
     
         pygame.display.update()
+        if scoreboard.game_over():
+            break
         FramePerSec.tick(Cfg.FPS)
 
         for paddle in paddles:

@@ -4,6 +4,7 @@ import random
 import pygame
 from pygame.locals import *
 
+g_debug = False
 
 class Cfg():
     HEIGHT = 450            # pixels (screen)
@@ -115,7 +116,8 @@ class Ball(pygame.sprite.Sprite):
         yd = self.pos.y + (math.sin(self.angle) * Cfg.HEIGHT)
         self.dst = pygame.math.Vector2((xd, yd))
 
-        print(180.0 * self.angle / math.pi)
+        if g_debug:
+            print(180.0 * self.angle / math.pi)
 
         self.dx = int(round(abs(self.dst.x - self.pos.x)))
         self.dy = int(round(abs(self.dst.y - self.pos.y)))

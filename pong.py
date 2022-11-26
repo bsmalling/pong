@@ -91,11 +91,10 @@ class Ball(pygame.sprite.Sprite):
 
         # Initial position of the ball (center vertically, 3/4th away from directed paddle)
         self.rect = self.surf.get_rect()
-        x = 0; y = (Cfg.HEIGHT // 2) + (Cfg.PD_WIDTH // 2)
+        y = (Cfg.HEIGHT // 2) + (Cfg.PD_WIDTH // 2)
+        x = (Cfg.WIDTH // 4) - (Cfg.PD_WIDTH // 2)
         if direction == Const.LEFT:
-            x = 3 * (Cfg.WIDTH // 4) - (Cfg.PD_WIDTH // 2)
-        else:
-            x = 1 * (Cfg.WIDTH // 4) - (Cfg.PD_WIDTH // 2)
+            x *= 3
         self.rect.bottomleft = pygame.math.Vector2((x, y))
 
         # Randomly select an angle between -60 and +60 degrees
@@ -196,10 +195,9 @@ class Paddle(pygame.sprite.Sprite):
         self.side = side
    
         self.rect = self.surf.get_rect()
-        x = 0; y = (Cfg.HEIGHT // 2) + (Cfg.PD_HEIGHT // 2)
-        if side == Const.LEFT:
-            x = Cfg.PD_BUFFER
-        else:
+        y = (Cfg.HEIGHT // 2) + (Cfg.PD_HEIGHT // 2)
+        x = Cfg.PD_BUFFER
+        if side == Const.RIGHT:
             x = Cfg.WIDTH - Cfg.PD_BUFFER - Cfg.PD_WIDTH
         self.rect.bottomleft = pygame.math.Vector2((x, y))
 

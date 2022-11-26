@@ -18,7 +18,6 @@ class Cfg():
 
     FPS = 60                # frames per second
     GAME_SPEED = 4          # ball distance in pixels per frame
-
     MAX_SCORE = 11          # points required to win
 
 class Const():
@@ -91,7 +90,7 @@ class Ball(pygame.sprite.Sprite):
         # Initial position of the ball (center vertically, 3/4th away from directed paddle)
         self.rect = self.surf.get_rect()
         y = (Cfg.HEIGHT // 2) - (Cfg.PD_WIDTH // 2)
-        x = (Cfg.WIDTH // 4) - (Cfg.PD_WIDTH // 2)
+        x = Cfg.WIDTH // 4
         if direction == Const.LEFT:
             x *= 3
         self.rect.topleft = pygame.math.Vector2((x, y))

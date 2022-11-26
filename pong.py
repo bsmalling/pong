@@ -180,9 +180,10 @@ class Ball(pygame.sprite.Sprite):
             self.diff += 2 * self.dx
 
     def _normalize_angle(self, rads):
+        # Normalize angle to 0 <= angle < 2pi
         if rads < 0.0:
             rads += Const.C2PI
-        elif rads > Const.C2PI:
+        elif rads >= Const.C2PI:
             rads -= Const.C2PI
         return rads
 
@@ -194,6 +195,7 @@ class Paddle(pygame.sprite.Sprite):
         self.surf.fill(Const.WHITE)
         self.side = side
    
+        # Initial position of the paddle (center vertically)
         self.rect = self.surf.get_rect()
         y = (Cfg.HEIGHT // 2) - (Cfg.PD_HEIGHT // 2)
         x = Cfg.PD_BUFFER

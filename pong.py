@@ -17,7 +17,9 @@ class Cfg():
     PD_BUFFER = 40          # pixels (for paddles)
 
     FPS = 60                # frames per second
+    GAME_SPEED = 4          # ball distance in pixels per frame
 
+    MAX_SCORE = 11          # points required to win
 
 class Const():
     CPI2 = math.pi / 2.0           # 90 degrees
@@ -26,6 +28,11 @@ class Const():
 
     LEFT = 0
     RIGHT = 1
+
+    COLLIDE_TOP = 0
+    COLLIDE_BOTTOM = 1
+    COLLIDE_LEFT = 2
+    COLLIDE_RIGHT = 3
 
     WHITE = (255,255,255)
     BLACK = (0,0,0)
@@ -54,8 +61,8 @@ class Scoreboard():
         self._draw_score(surface, self.l_score, (Cfg.WIDTH // 2) - (Cfg.WIDTH // 3))
         self._draw_score(surface, self.r_score, (Cfg.WIDTH // 2) + (Cfg.WIDTH // 3))
 
-    def game_over(self):
-        return self.l_score >= 11 or self.r_score >= 11
+    def game_is_over(self):
+        return self.l_score >= Cfg.MAX_SCORE or self.r_score >= Cfg.MAX_SCORE
 
     def _draw_score(self, surface, score, x):
         if score >= 10:
@@ -76,22 +83,20 @@ class Scoreboard():
  
 
 class Ball(pygame.sprite.Sprite):
-    def __init__(self, direction, speed = 3):
+    def __init__(self, direction, speed):
         super().__init__() 
         self.surf = pygame.Surface((Cfg.PD_WIDTH, Cfg.PD_WIDTH))
         self.surf.fill(Const.WHITE)
-
-        # Initial position of the ball (center vertically, 2/3 away from directed paddle)
-        ypos = (Cfg.HEIGHT // 2) + (Cfg.PD_WIDTH // 2)
-        if direction == Const.LEFT:
-            xpos = 2 * (Cfg.WIDTH // 3) - (Cfg.PD_WIDTH // 2)
-        else:
-            xpos = 1 * (Cfg.WIDTH // 3) - (Cfg.PD_WIDTH // 2)
-        self.pos = pygame.math.Vector2((xpos, ypos))
         self.speed = speed
 
+        # Initial position of the ball (center vertically, 3/4th away from directed paddle)
         self.rect = self.surf.get_rect()
-        self.rect.bottomleft = self.pos
+        x = 0; y = (Cfg.HEIGHT // 2) + (Cfg.PD_WIDTH // 2)
+        if direction == Const.LEFT:
+            x = 3 * (Cfg.WIDTH // 4) - (Cfg.PD_WIDTH // 2)
+        else:
+            x = 1 * (Cfg.WIDTH // 4) - (Cfg.PD_WIDTH // 2)
+        self.rect.bottomleft = pygame.math.Vector2((x, y))
 
         # Randomly select an angle between -60 and +60 degrees
         angle = (random.random() * math.pi / 1.5) - (math.pi / 3.0)
@@ -106,32 +111,36 @@ class Ball(pygame.sprite.Sprite):
             angle += math.pi
         self.set_angle(angle)
 
-    def move(self):
-        self._step_line()
-        # Check for collision with top or bottom of screen
-        if self.pos.y <= Cfg.PD_WIDTH:
-            self.pos.y = Cfg.PD_WIDTH + 1
-            self.set_angle(Const.C2PI - self.angle)
-        elif self.pos.y >= Cfg.HEIGHT:
-            self.pos.y = Cfg.HEIGHT - 1
-            self.set_angle(Const.C2PI - self.angle)
-
     def set_angle(self, angle):
         self.angle = self._normalize_angle(angle)
         # Calculate x and y coordinates of the ball's destination
-        x = self.pos.x + (math.cos(self.angle) * Cfg.LINE_LENGTH)
-        y = self.pos.y + (math.sin(self.angle) * Cfg.LINE_LENGTH)
+        x = self.rect.left + (math.cos(self.angle) * Cfg.LINE_LENGTH)
+        y = self.rect.top  + (math.sin(self.angle) * Cfg.LINE_LENGTH)
         self._prep_line(pygame.math.Vector2((x, y)))
+
+    def set_next_angle(self, collision):
+        if collision == Const.COLLIDE_TOP or collision == Const.COLLIDE_BOTTOM:
+            self.set_angle(Const.C2PI - self.angle)
+        elif collision == Const.COLLIDE_LEFT or collision == Const.COLLIDE_RIGHT:
+            self.set_angle(math.pi - self.angle)
+        else:
+            raise ValueError("Invalid collision type")
+
+    def move(self):
+        if abs(self.dy) < abs(self.dx):
+            self._step_line_low()
+        else:
+            self._step_line_high()
 
     def _prep_line(self, dst):
         # Bresenham's line algorithm
         # https://wiki2.org/en/Bresenham%27s_line_algorithm
-        self.dx = int(round(abs(dst.x - self.pos.x)))
-        if dst.x < self.pos.x:
+        self.dx = int(round(abs(dst.x - self.rect.left)))
+        if dst.x < self.rect.left:
             self.dx = -self.dx
 
-        self.dy = int(round(abs(dst.y - self.pos.y)))
-        if dst.y < self.pos.y:
+        self.dy = int(round(abs(dst.y - self.rect.top)))
+        if dst.y < self.rect.top:
             self.dy = -self.dy
 
         if abs(self.dy) < abs(self.dx):
@@ -147,33 +156,26 @@ class Ball(pygame.sprite.Sprite):
                 self.xi = -self.speed
             self.diff = (2 * self.dx) - self.dy
 
-    def _step_line(self):
-        if abs(self.dy) < abs(self.dx):
-            self._step_line_low()
-        else:
-            self._step_line_high()
-        self.rect.bottomleft = self.pos
-
     def _step_line_low(self):
         if self.dx > 0:
-            self.pos.x += self.speed
+            self.rect.left += self.speed
         elif self.dx < 0:
-            self.pos.x -= self.speed
+            self.rect.left -= self.speed
 
         if self.diff > 0:
-            self.pos.y += self.yi
+            self.rect.top += self.yi
             self.diff += 2 * (self.dy - self.dx)
         else:
             self.diff += 2 * self.dy
 
     def _step_line_high(self):
         if self.dy > 0:
-            self.pos.y -= self.speed
+            self.rect.top -= self.speed
         elif self.dy < 0:
-            self.pos.y += self.speed
+            self.rect.top += self.speed
 
         if self.diff > 0:
-            self.pos.x += self.xi
+            self.rect.left += self.xi
             self.diff += 2 * (self.dx - self.dy)
         else:
             self.diff += 2 * self.dx
@@ -191,39 +193,27 @@ class Paddle(pygame.sprite.Sprite):
         super().__init__() 
         self.surf = pygame.Surface((Cfg.PD_WIDTH, Cfg.PD_HEIGHT))
         self.surf.fill(Const.WHITE)
-        self.rect = self.surf.get_rect()
         self.side = side
    
-        ypos = (Cfg.HEIGHT // 2) + (Cfg.PD_HEIGHT // 2)
+        self.rect = self.surf.get_rect()
+        x = 0; y = (Cfg.HEIGHT // 2) + (Cfg.PD_HEIGHT // 2)
         if side == Const.LEFT:
-            self.pos = pygame.math.Vector2((Cfg.PD_BUFFER, ypos))
+            x = Cfg.PD_BUFFER
         else:
-            self.pos = pygame.math.Vector2((Cfg.WIDTH - Cfg.PD_BUFFER - Cfg.PD_WIDTH, ypos))
-        self.rect.bottomleft = self.pos
+            x = Cfg.WIDTH - Cfg.PD_BUFFER - Cfg.PD_WIDTH
+        self.rect.bottomleft = pygame.math.Vector2((x, y))
 
-    def move(self):
-        pressed_keys = pygame.key.get_pressed()
-        if pressed_keys[K_ESCAPE]:
-            pygame.quit()
-            sys.exit()
-            
+    def move(self, pressed_keys):
         if self.side == Const.LEFT:
             if pressed_keys[K_a]:
-                self.pos.y -= Cfg.PD_MOVE
+                self.rect.top -= Cfg.PD_MOVE
             if pressed_keys[K_z]:
-                self.pos.y += Cfg.PD_MOVE
+                self.rect.top += Cfg.PD_MOVE
         else:
-            if pressed_keys[K_k]:
-                self.pos.y -= Cfg.PD_MOVE
-            if pressed_keys[K_m]:
-                self.pos.y += Cfg.PD_MOVE
-
-        # Check for collision with top or bottom of screen
-        if self.pos.y < Cfg.PD_HEIGHT:
-            self.pos.y = Cfg.PD_HEIGHT
-        elif self.pos.y > Cfg.HEIGHT:
-            self.pos.y = Cfg.HEIGHT
-        self.rect.bottomleft = self.pos
+            if pressed_keys[K_QUOTE]:
+                self.rect.top -= Cfg.PD_MOVE
+            if pressed_keys[K_SLASH]:
+                self.rect.top += Cfg.PD_MOVE
 
 
 def main():
@@ -232,54 +222,91 @@ def main():
     pygame.display.set_caption("Pong")
     displaysurface = pygame.display.set_mode((Cfg.WIDTH, Cfg.HEIGHT))
 
+    # Initialize game objects
+    speed = Cfg.GAME_SPEED
     scoreboard = Scoreboard()
-    ball = Ball(Const.RIGHT)
+    ball = Ball(Const.RIGHT, speed)
     l_paddle = Paddle(Const.LEFT)
     r_paddle = Paddle(Const.RIGHT)
     paddles = [ l_paddle, r_paddle ]
 
     # Main game loop
     while True:
-        for event in pygame.event.get():
-            if event.type == QUIT:
-                pygame.quit()
-                sys.exit(0)
-        
         # Render the game
         displaysurface.fill(Const.BLACK)
         scoreboard.draw(displaysurface)
         for paddle in paddles:
             displaysurface.blit(paddle.surf, paddle.rect)
-        if not scoreboard.game_over():
+        if not scoreboard.game_is_over():
             displaysurface.blit(ball.surf, ball.rect)
         pygame.display.update()
-
-        if scoreboard.game_over():
-            break
         fps_timer.tick(Cfg.FPS)
 
-        # Update the game
-        for paddle in paddles:
-            paddle.move()
+        # Check for inputs
+        if scoreboard.game_is_over():
+            break
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                pygame.quit()
+                sys.exit(0)
+        pressed_keys = pygame.key.get_pressed()
+        if pressed_keys[K_ESCAPE]:
+            pygame.quit()
+            sys.exit()
+
+        # Update the ball
         ball.move()
 
+        # Check for ball collision with top or bottom of screen
+        if ball.rect.top < 0:
+            ball.rect.top = 0
+            ball.set_next_angle(Const.COLLIDE_TOP)
+        elif ball.rect.bottom >= Cfg.HEIGHT:
+            ball.rect.bottom = Cfg.HEIGHT - 1
+            ball.set_next_angle(Const.COLLIDE_BOTTOM)
         # Check for ball collision with paddles
-        if ball.rect.colliderect(l_paddle.rect):
-            ball.pos.x = l_paddle.rect.x + Cfg.PD_WIDTH + 2
-            angle = math.pi - ball.angle
-            ball.set_angle(angle)
+        elif ball.rect.colliderect(l_paddle.rect):
+            # Check for collision with top of left addle
+            if ball.rect.bottom <= l_paddle.rect.top + ball.speed:
+                ball.rect.bottom = l_paddle.rect.top - 1
+                ball.set_next_angle(Const.COLLIDE_BOTTOM)
+            # Check for collision with bottom of left paddle
+            elif ball.rect.top >= l_paddle.rect.bottom - ball.speed:
+                ball.rect.top = l_paddle.rect.bottom + 1
+                ball.set_next_angle(Const.COLLIDE_TOP)
+            else:
+                # Collision is in middle of left paddle
+                ball.rect.left = l_paddle.rect.right + 1
+                ball.set_next_angle(Const.COLLIDE_LEFT)
         elif ball.rect.colliderect(r_paddle.rect):
-            ball.pos.x = r_paddle.rect.x - Cfg.PD_WIDTH - 2
-            angle = math.pi - ball.angle
-            ball.set_angle(angle)
-
+            # Check for collision with top of right paddle
+            if ball.rect.bottom <= r_paddle.rect.top + ball.speed:
+                ball.rect.bottom = r_paddle.rect.top - 1
+                ball.set_next_angle(Const.COLLIDE_BOTTOM)
+            # Check for collision with bottom of right paddle
+            elif ball.rect.top >= r_paddle.rect.bottom - ball.speed:
+                ball.rect.top = r_paddle.rect.bottom + 1
+                ball.set_next_angle(Const.COLLIDE_TOP)
+            else:
+                # Collision is in middle of right paddle
+                ball.rect.right = r_paddle.rect.left - 1
+                ball.set_next_angle(Const.COLLIDE_RIGHT)
         # Check for ball exiting left or right, meaning score
-        if ball.pos.x >= Cfg.WIDTH - Cfg.PD_WIDTH:
+        elif ball.rect.left > Cfg.WIDTH:
             scoreboard.l_score += 1
-            ball = Ball(Const.RIGHT)
-        elif ball.pos.x <= 0:
+            ball = Ball(Const.RIGHT, speed)
+        elif ball.rect.right < 0:
             scoreboard.r_score += 1
-            ball = Ball(Const.LEFT)
+            ball = Ball(Const.LEFT, speed)
+
+        # Update the paddles
+        for paddle in paddles:
+            paddle.move(pressed_keys)
+            # Check for paddle collision with top or bottom of screen
+            if paddle.rect.top < 0:
+                paddle.rect.top = 0
+            elif paddle.rect.bottom >= Cfg.HEIGHT:
+                paddle.rect.bottom = Cfg.HEIGHT - 1
 
     # Game over, wait for user to quit
     while True:

@@ -180,7 +180,7 @@ class Ball(pygame.sprite.Sprite):
             self.diff += 2 * self.dx
 
     def _normalize_angle(self, rads):
-        # Normalize angle to 0 <= angle < 2pi
+        # Normalize angle to 0 <= angle < 360 degrees
         if rads < 0.0:
             rads += Const.C2PI
         elif rads >= Const.C2PI:

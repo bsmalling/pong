@@ -22,7 +22,6 @@ class Cfg():
     MAX_SCORE = 11          # points required to win
 
 class Const():
-    CPI2 = math.pi / 2.0           # 90 degrees
     C2PI = 2.0 * math.pi           # 360 degrees
     MIN_ANGLE = math.pi / 12.0     # 15 degrees
 

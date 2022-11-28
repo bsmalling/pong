@@ -17,7 +17,7 @@ class Cfg():
     PD_BUFFER = 40          # pixels (for paddles)
 
     FPS = 60                # frames per second
-    GAME_SPEED = 4          # ball distance in pixels per frame
+    BALL_SPEED = 4          # ball distance in pixels per frame (1-10)
     MAX_SCORE = 11          # points required to win
 
 class Const():
@@ -221,7 +221,7 @@ def main():
     displaysurface = pygame.display.set_mode((Cfg.WIDTH, Cfg.HEIGHT))
 
     # Initialize game objects
-    speed = Cfg.GAME_SPEED
+    speed = Cfg.BALL_SPEED
     scoreboard = Scoreboard()
     ball = Ball(Const.RIGHT, speed)
     l_paddle = Paddle(Const.LEFT)

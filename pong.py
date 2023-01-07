@@ -20,6 +20,10 @@ class Cfg():
     BALL_SPEED = 4          # ball distance in pixels per frame (1-10)
     MAX_SCORE = 11          # points required to win
 
+    CENTER_LINE_WIDTH = 5   # pixels
+    CENTER_LINE_HEIGHT = 10 # pixels
+    CENTER_LINE_SPAN = 20   # pixels
+
 class Const():
     C2PI = 2.0 * math.pi           # 360 degrees
     MIN_ANGLE = math.pi / 12.0     # 15 degrees
@@ -34,6 +38,7 @@ class Const():
 
     WHITE = (255,255,255)
     BLACK = (0,0,0)
+    GRAY = (128,128,128)
 
 
 class Scoreboard():
@@ -213,6 +218,10 @@ class Paddle(pygame.sprite.Sprite):
             if pressed_keys[K_SLASH]:
                 self.rect.top += Cfg.PD_MOVE
 
+def draw_center_line(surface):
+    xpos = Cfg.WIDTH // 2 - Cfg.CENTER_LINE_WIDTH // 2
+    for ypos in range(0, Cfg.HEIGHT, Cfg.CENTER_LINE_SPAN):
+        pygame.draw.line(surface, Const.GRAY, (xpos, ypos), (xpos, ypos + Cfg.CENTER_LINE_HEIGHT), Cfg.CENTER_LINE_WIDTH)
 
 def main():
     pygame.init()
@@ -232,6 +241,7 @@ def main():
     while True:
         # Render the game
         displaysurface.fill(Const.BLACK)
+        draw_center_line(displaysurface)
         scoreboard.draw(displaysurface)
         for paddle in paddles:
             displaysurface.blit(paddle.surf, paddle.rect)
